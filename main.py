@@ -6,49 +6,103 @@
 #     Maybe add INSURANCE, SPLIT, or DOUBLE DOWN
 # If player under 21, deal hits until they beat player or dealer busts
 
-# TODO:
-# - Create deck of 52 cards
-# - shuffle the deck
-# - ask player for their bet
-# - make sure player's bet does not exceed available chips
-# - deal two cards to the deal and two to player
-# - show only one of the dealer's cards, the other remains hidden
-# - show both of the player's cards
-# - ask the player if to hit
-# - if player doesn't bust, ask if the want to hit again
-# - if player stands, player the dealer's hand. Deal will always Hit until dealer's value meets or exceeds 17
-# - Determine winner and adjust Player's chips
-# - Ask player to play again
+from Deck import Deck
+from Hand import Hand
 
-import Card
-import Deck
-import Hand
+STARTING_NUMBER_OF_CHIPS = 100
+CARDS_DEALT_AT_START = 2
+CARDS_DEALT_PER_HIT = 1
+
 
 # prints current chips available and asks for amount to be bet
 def ask_for_bet(chips_available):
+    print("\n\n\nYou currently have " + str(chips_available) + " chips available")
+
+    while (True):
+        try:
+            bet_amount = int(input("Please input the amount you would like to bet: "))
+            if bet_amount > chips_available: raise Exception
+        except:
+            print("Value is invalid")
+        else:
+            break
+
+    return bet_amount
+
+
+def ask_for_hit(player_hand):
+    print("\nCurrent hand value is " + str(player_hand.possible_values))
+
+    while True:
+        player_input = input("Would you like to HIT? (Type 'Hit' to Hit and 'Stand' to Stand) ")
+
+        if player_input == 'Hit':
+            return True
+        elif player_input == 'Stand':
+            return False
+        else:
+            continue
+
+
+# Whenever new card is added, throw this exception so we can restart function
+class ContinueDueToNewCard(Exception):
     pass
 
-def ask_for_hit():
-    pass
 
-def dealer_action(dealer_hand, player_hand):
-    pass
+# Dealer will always Hit until dealer's value meets or exceeds 17
+def dealer_action(deck, dealer_hand):
+    # For every possible value, check if any of them are in range(17, 21)
+    while True:  # Loop used to restart possible_values
+        try:
+            for value in dealer_hand.possible_values:
+                while value < 17:
+                    new_card = deck.deal_n_cards(CARDS_DEALT_PER_HIT)
+                    dealer_hand.add_cards(new_card)
+                    raise ContinueDueToNewCard  # Break out while loop whenever new card is added
+            break
+        except ContinueDueToNewCard:
+            continue
+
+    if dealer_hand.check_if_hand_busts():
+        print("Dealer hand busts!")
+
+    print("\nDealer hand value is " + str(dealer_hand.possible_values))
+
 
 def find_if_player_won(dealer_hand, player_hand):
-    pass
+    dealer_highest = 0
+    for value in dealer_hand.possible_values:
+        if value <= 21:
+            dealer_highest = value
+            break
+
+    player_highest = 0
+    for value in player_hand.possible_values:
+        if value <= 21:
+            player_highest = value
+            break
+
+    return player_highest > dealer_highest
+
 
 def ask_to_continue():
-    pass
+    while True:
+        player_input = input("Would you like to continue playing? (Type 'Continue' to Continue and 'Quit' to Quit ")
+
+        if player_input == 'Continue':
+            return True
+        elif player_input == 'Quit':
+            return False
+        else:
+            continue
+
 
 if __name__ == '__main__':
 
-    STARTING_NUMBER_OF_CHIPS = 100
     chips_available = STARTING_NUMBER_OF_CHIPS
     game_in_play = True
 
-    while(game_in_play):
-
-        CARDS_DEALT_AT_START = 2
+    while game_in_play:
 
         # instantiate deck
         deck = Deck()
@@ -66,36 +120,34 @@ if __name__ == '__main__':
         print(player_hand)
 
         hand_in_play = True
-        while(hand_in_play):
-
-            CARDS_DEALT_PER_HIT = 1
-
-            print("Current hand value is " + player_hand.value)
+        while hand_in_play:
 
             # ask if want to hit or stay
-            player_hits = ask_for_hit()
+            hand_in_play = ask_for_hit(player_hand)
 
-            if player_hits: # deal player a card if hit
-                player_hand.cards.append(deck.deal_n_cards(CARDS_DEALT_PER_HIT))
+            if hand_in_play:  # deal player a card if hit
+                new_cards = deck.deal_n_cards(CARDS_DEALT_PER_HIT)
+                print("Dealer has given you " + ', '.join(map(str, new_cards)))
+                player_hand.add_cards(new_cards)
 
-            # check if bust else ask to hit
-            if player_hand.check_hand_busts():
-                hand_in_play = False
-
+                # check if bust else ask to hit
+                if player_hand.check_if_hand_busts():
+                    print("Your hand busts!")
+                    hand_in_play = False
 
         # if player stands, dealer action
-        dealer_action(dealer_hand, player_hand)
+        dealer_action(deck, dealer_hand)
         print(dealer_hand)
 
         # determine winner and adjust chips
         if find_if_player_won(dealer_hand, player_hand):
-            print("Congratulations! You won " + chips_bet)
             chips_available += chips_bet
+            print(f"\nCongratulations! You won {chips_bet} with a new total of {chips_available}")
         else:
-            print("Sorry. You lost " + chips_bet)
             chips_available -= chips_bet
+            print(f"\nSorry. You lost {chips_bet} with a new total of {chips_available}")
 
         # ask player to play again
         game_in_play = ask_to_continue()
 
-    print("You finished with a total of " + chips_available)
+    print(f"\n\nYou finished with a total of {chips_available}")

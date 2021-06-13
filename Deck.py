@@ -1,5 +1,5 @@
 import random
-import Card
+from Card import Card
 
 # Represents an entire deck with 52 unique cards
 
